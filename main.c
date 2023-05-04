@@ -12,6 +12,16 @@ int ft_strlen2d(char **list)
         i++;
     return i;
 }
+void cd (char **cmd_text)
+{
+	int a;
+	a = chdir(cmd_text[1]);
+	if(a == -1)
+	{
+		write(2,"cd: no such file or directory:\n",32);
+		return ;
+	}
+}
 void *ft_calloc(int size ,int len)
 {
     void *str = malloc(size*len);
@@ -63,6 +73,16 @@ int number_of_pipe(char **table_op)
     }
     return(number_pipe);
 }
+void close_file(int **pipes,int  number_pipe)
+{
+    int i = 0;
+    while(i < number_pipe)
+    {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+        i++;
+    }
+}
 void execute_cmd(char ***table_cmd,char **table_op,char **env)
 {
     int i = 0;
@@ -83,17 +103,38 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
     i = 0;
     while(table_cmd[i])
     {
-        id = fork();
-        if(id == 0)
-        {
-            // if(strcmp(table_op[i],"|") == 0)
-            //     dup2(pipe[i][1],1);
-            cmd(table_cmd[i],env);
-            exit(0);
-        }
-        wait(0);
+			if(strcmp(table_cmd[i][0],"cd") == 0)
+			{
+				if(strcmp(table_op[i],"|") != 0)
+					cd(table_cmd[i]);
+				if(i != 0  && table_op[i - 1] != NULL)
+					if(strcmp(table_op[i - 1],"|") != 0)
+						cd(table_cmd[i]);
+			}
+			else 
+			{
+				id = fork();
+				if(id == 0)
+				{
+					if(table_op[i] != NULL)
+						if(strcmp(table_op[i],"|") == 0)
+							dup2(pipes[i][1],1);
+
+					if(i != 0  && table_op[i - 1] != NULL)
+						if(strcmp(table_op[i - 1],"|") == 0)
+							dup2(pipes[i - 1][0],0);
+					close_file(pipes,number_pipe);
+					cmd(table_cmd[i],env);
+					exit(0);
+				}
+		}
+        if(table_op[i] != NULL)
+            if(strcmp(table_op[i],"|") != 0)
+                waitpid(0,NULL,0);
         i++;
     }
+    while(waitpid(0,NULL,0)!= -1 )
+        close_file(pipes,number_pipe);
 }
 void build_cmd(char **argv,char **env,int argc)
 {
@@ -136,24 +177,6 @@ void build_cmd(char **argv,char **env,int argc)
             i++;
     }
     execute_cmd(table_cmd,table_op,env);
-    // i = 0;
-    // int j = 0;
-    // while(table_cmd[i]!= NULL)
-    // {
-    //     j = 0;
-    //     while(table_cmd[i][j] != NULL)
-    //     {
-    //         printf("%s\n",table_cmd[i][j]);
-    //         j++;
-    //     }
-    //     i++;
-    // }
-    // i = 0 ;
-
-    // while(table_op[i])
-    // {
-    //     printf("%s\n",table_op[i++]);
-    // }
 }
 int main(int argc,char **argv,char **env)
 {
