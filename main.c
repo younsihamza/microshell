@@ -15,10 +15,26 @@ int ft_strlen2d(char **list)
 void cd (char **cmd_text)
 {
 	int a;
+	int i = 0;
+	if(cmd_text[1] == NULL)
+	{
+		write(2,"error: cd: bad arguments\n",26);
+		return;
+	}else if(cmd_text[1][0] == '-')
+		{
+			write(2,"error: cd: bad arguments\n",26);
+			return;
+		}
 	a = chdir(cmd_text[1]);
 	if(a == -1)
 	{
-		write(2,"cd: no such file or directory:\n",32);
+		write(2,"cd: cannot change directory to ",32);
+		while(cmd_text[1][i])
+		{
+			write(2,&cmd_text[1][i],1);
+			i++;
+		}
+		write(2,"\n",1);
 		return ;
 	}
 }
@@ -105,11 +121,15 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
     {
 			if(strcmp(table_cmd[i][0],"cd") == 0)
 			{
-				if(strcmp(table_op[i],"|") != 0)
+				if(table_op[0] == NULL)
 					cd(table_cmd[i]);
-				if(i != 0  && table_op[i - 1] != NULL)
-					if(strcmp(table_op[i - 1],"|") != 0)
+				else if(strcmp(table_op[i],"|") != 0)
+					cd(table_cmd[i]);
+				else if(i != 0  && table_op[i - 1] != NULL)
+					{
+						if(strcmp(table_op[i - 1],"|") != 0)
 						cd(table_cmd[i]);
+					}
 			}
 			else 
 			{
@@ -135,6 +155,12 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
     }
     while(waitpid(0,NULL,0)!= -1 )
         close_file(pipes,number_pipe);
+	i = 0;
+	while(i < number_pipe)
+	{
+		free(pipes[i++]);
+	}
+	free(pipes);
 }
 void build_cmd(char **argv,char **env,int argc)
 {
@@ -145,6 +171,7 @@ void build_cmd(char **argv,char **env,int argc)
     char ***table_cmd = NULL;
     char **table_op = NULL;
     char **tmp = NULL;
+	char **tmp1 = NULL;
     while(argv[i])
     {
         if(strcmp(argv[i],";") == 0 || strcmp(argv[i],"|") ==0)
@@ -169,7 +196,10 @@ void build_cmd(char **argv,char **env,int argc)
         {
             if(strcmp(argv[i],";") == 0 || strcmp(argv[i],"|") == 0)
                 break;
+			tmp1 = tmp;
             tmp = ft_join2d(tmp,argv[i]);
+			if(tmp1 != NULL)
+				free(tmp1);
             i++;
         }
         table_cmd[increment_cmd++] = tmp;
@@ -177,8 +207,17 @@ void build_cmd(char **argv,char **env,int argc)
             i++;
     }
     execute_cmd(table_cmd,table_op,env);
+	i = 0;
+	while(table_cmd[i])
+	{
+		free(table_cmd[i]);
+		i++;
+	}
+	free(table_cmd);
+	free(table_op);
 }
 int main(int argc,char **argv,char **env)
 {
     build_cmd(argv,env,argc);
+	while(1);
 }
