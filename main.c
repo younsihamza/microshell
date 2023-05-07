@@ -69,11 +69,19 @@ char **ft_join2d(char **list,char *new)
     newlist[i] = new; 
     return newlist;
 }
-void cmd(char **cmd_text,char **env)
+int ft_strlen(char *str)
 {
     int i = 0;
+    while(str[i])
+        i++;
+    return(i);
+}
+void cmd(char **cmd_text,char **env)
+{
     execve(cmd_text[0],cmd_text,env);
-    write(2,"cmd not found\n",14);
+    write(2,"error: cannot execute ",23);
+    write(2,cmd_text[0],ft_strlen(cmd_text[0]));
+    write(2,"\n",1);
 }
 int number_of_pipe(char **table_op)
 {
@@ -99,7 +107,7 @@ void close_file(int **pipes,int  number_pipe)
         i++;
     }
 }
-void execute_cmd(char ***table_cmd,char **table_op,char **env)
+void execute_cmd(char ***table_cmd,char **table_op,char **env,int operator)
 {
     int i = 0;
     int id;
@@ -117,8 +125,11 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
         }
     }
     i = 0;
-    while(table_cmd[i])
+    while(i <= operator)
     {
+        if(table_cmd[i] != NULL)
+        {
+
 			if(strcmp(table_cmd[i][0],"cd") == 0)
 			{
 				if(table_op[0] == NULL)
@@ -147,6 +158,7 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
 					cmd(table_cmd[i],env);
 					exit(0);
 				}
+        }
 		}
         if(table_op[i] != NULL)
             if(strcmp(table_op[i],"|") != 0)
@@ -154,7 +166,9 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
         i++;
     }
     while(waitpid(0,NULL,0)!= -1 )
+    {
         close_file(pipes,number_pipe);
+    }
 	i = 0;
 	while(i < number_pipe)
 	{
@@ -162,7 +176,7 @@ void execute_cmd(char ***table_cmd,char **table_op,char **env)
 	}
 	free(pipes);
 }
-void build_cmd(char **argv,char **env,int argc)
+void build_cmd(char **argv,char **env)
 {
     int i = 1;
     int increment_cmd = 0;
@@ -206,7 +220,7 @@ void build_cmd(char **argv,char **env,int argc)
         if(argv[i]!= NULL)
             i++;
     }
-    execute_cmd(table_cmd,table_op,env);
+    execute_cmd(table_cmd,table_op,env,operateur);
 	i = 0;
 	while(table_cmd[i])
 	{
@@ -218,6 +232,7 @@ void build_cmd(char **argv,char **env,int argc)
 }
 int main(int argc,char **argv,char **env)
 {
-    build_cmd(argv,env,argc);
-	while(1);
+    (void)argc;
+    build_cmd(argv,env);
+    
 }
